@@ -3,8 +3,11 @@ const express = require('express');
 // const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const cors = require('cors');
+const mongoose = require('mongoose');
 
 const router = require('./routes/router');
+const dbConfig = require('./config/database.config');
 
 const app = express();
 
@@ -12,9 +15,22 @@ const app = express();
 // app.set('views', path.join(__dirname, 'views'));
 // app.set('view engine', 'hbs');
 
+mongoose.Promise = global.Promise;
+
+// Connecting to the database
+mongoose.connect(dbConfig.url)
+  .then(() => {
+    console.log("Successfully connected to the database");
+  })
+  .catch(err => {
+    console.log('Could not connect to the database. Exiting now...');
+    process.exit();
+  });
+
 app.use(logger('dev'));
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // app.use(express.static(path.join(__dirname, 'public')));
 
