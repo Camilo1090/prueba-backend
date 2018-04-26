@@ -3,39 +3,31 @@ const countries = require('i18n-iso-countries');
 
 const User = require('../models/user.model');
 
+exports.count = (req, res) => {
+  const filters = getFilters(req.query);
+  User.aggregate([
+    {
+      $match: filters
+    },
+    {
+      $group: {
+        _id: '$nationality',
+        count: { $sum: 1 }
+      }
+    }
+  ])
+    .then(result => {
+      return res.status(200).send(result);
+    })
+    .catch(error => {
+      return res.status(500).send({
+        message: error.message || 'Some error occurred while counting users'
+      });
+    });
+};
+
 exports.findAll = (req, res) => {
-  let filters = {};
-  if (req.query['nationality']) {
-    const nationality = req.query['nationality'];
-    if (countries.isValid(nationality))
-      filters.nationality = nationality;
-    else
-      return res.status(400).send({ message: 'Error in parameter nationality' });
-  }
-  if (req.query['age.gte']) {
-    const ageGte = parseInt(req.query['age.gte']);
-    if (!ageGte || ageGte < 0)
-      return res.status(400).send({ message: 'Error in parameter age.gte' });
-    filters.date_of_birth = { $lte: moment().subtract(ageGte, 'years') };
-    // console.log(moment().subtract(ageGte, 'years').format('YYYY-MM-DD'));
-  }
-  if (req.query['age.lte']) {
-    const ageLte = parseInt(req.query['age.lte']);
-    if (!ageLte || ageLte > 100)
-      return res.status(400).send({ message: 'Error in parameter age.lte' });
-    if (filters.date_of_birth)
-      filters.date_of_birth.$gte = moment().subtract(ageLte + 1, 'years').add(1, 'days');
-    else
-      filters.date_of_birth = { $gte: moment().subtract(ageLte + 1, 'years').add(1, 'days') };
-    // console.log(moment().subtract(ageLte + 1, 'years').add(1, 'days').format('YYYY-MM-DD'));
-  }
-  if (req.query['sex']) {
-    const sex = req.query['sex'];
-    if (sex === 'female' || sex === 'male')
-      filters.sex = sex;
-    else
-      return res.status(400).send({ message: 'Error in parameter sex' });
-  }
+  const filters = getFilters(req.query);
   User.find(filters)
     .then(users => {
       // users = users.map(user => serializeUser(user));
@@ -148,3 +140,45 @@ exports.delete = (req, res) => {
       });
     })
 };
+
+// helpers
+function getFilters(params) {
+  let filters = {};
+
+  if (params['nationality']) {
+    const nationality = params['nationality'];
+    if (countries.isValid(nationality))
+      filters.nationality = nationality;
+    else
+      return res.status(400).send({ message: 'Error in parameter nationality' });
+  }
+
+  if (params['age.gte']) {
+    const ageGte = parseInt(params['age.gte']);
+    if (!ageGte || ageGte < 0)
+      return res.status(400).send({ message: 'Error in parameter age.gte' });
+    filters.date_of_birth = { $lte: moment().subtract(ageGte, 'years').toDate() };
+    // console.log(moment().subtract(ageGte, 'years').format('YYYY-MM-DD'));
+  }
+
+  if (params['age.lte']) {
+    const ageLte = parseInt(params['age.lte']);
+    if (!ageLte || ageLte > 100)
+      return res.status(400).send({ message: 'Error in parameter age.lte' });
+    if (filters.date_of_birth)
+      filters.date_of_birth.$gte = moment().subtract(ageLte + 1, 'years').add(1, 'days').toDate();
+    else
+      filters.date_of_birth = { $gte: moment().subtract(ageLte + 1, 'years').add(1, 'days').toDate() };
+    // console.log(moment().subtract(ageLte + 1, 'years').add(1, 'days').format('YYYY-MM-DD'));
+  }
+
+  if (params['sex']) {
+    const sex = params['sex'];
+    if (sex === 'female' || sex === 'male')
+      filters.sex = sex;
+    else
+      return res.status(400).send({ message: 'Error in parameter sex' });
+  }
+
+  return filters;
+}

@@ -1,6 +1,11 @@
 const users = require('../controllers/user.controller');
 
 module.exports = (router) => {
+  // GET /users/count
+  router.get('/users/count', users.count);
+
+  // CRUD endpoints
+
   // GET /users
   router.get('/users', users.findAll);
 
