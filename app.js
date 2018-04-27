@@ -17,8 +17,15 @@ const app = express();
 
 mongoose.Promise = global.Promise;
 
+// choosing database url
+let databaseURL = "";
+if (process.env.NODE_ENV === 'production')
+  databaseURL = dbConfig.url_production;
+else
+  databaseURL = dbConfig.url_development;
+
 // Connecting to the database
-mongoose.connect(dbConfig.url)
+mongoose.connect(databaseURL)
   .then(() => {
     console.log("Successfully connected to the database");
   })
